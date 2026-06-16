@@ -505,8 +505,8 @@
     </table>
   </div>
 
-  <!-- Horas por proyecto -->
-  <div class="grid grid-3" style="margin-top:16px">
+  <!-- Horas por colaborador -->
+  <div class="grid grid-2" style="margin-top:16px">
     <div class="card">
       <div class="card-title">ZAP — Horas por colaborador</div>
       <div class="chart-box">
@@ -519,15 +519,31 @@
         <canvas id="chartDifHrs"></canvas>
       </div>
     </div>
+  </div>
+
+  <!-- Sprint charts row -->
+  <div class="grid grid-3" style="margin-top:16px">
     <div class="card">
-      <div class="card-title">Avance de horas — todos los proyectos</div>
+      <div class="card-title">Sprint Burndown <span class="badge badge-blue">DIF-DO · Sprint actual</span></div>
       <div class="chart-box">
-        <canvas id="chartAvance"></canvas>
+        <canvas id="chartBurndown"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sprint Burn-up <span class="badge badge-teal">DIF-DO · Acumulado</span></div>
+      <div class="chart-box">
+        <canvas id="chartBurnup"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Velocity — Story Points por sprint</div>
+      <div class="chart-box">
+        <canvas id="chartVelocity"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Burndown ZAP -->
+  <!-- FORCAS -->
   <div class="grid grid-2" style="margin-top:16px">
     <div class="card">
       <div class="card-title">Proyección de costo — FORCAS <span class="badge badge-blue">FP02 §17</span></div>
@@ -1047,7 +1063,9 @@ const DATA = {
     {nombre:'Facundo Godoy',   obj:40, prod:40,   pct:1,      carga:'🟢 OK', prom:'🟢 ok',       eval:'🟢 Cumple'},
     {nombre:'Marco Saggiorato',obj:20, prod:20,   pct:1,      carga:'🟢 OK', prom:'🟢 ok',       eval:'🟢 Cumple'},
   ],
-  isoStatus: { verde:7, amarillo:4, rojo:1 }
+  isoStatus: { verde:7, amarillo:4, rojo:1 },
+  velocityData: [18,22,18,24,22,18,26,20,17,19,20],
+  velocityAvg:  21
 };
 
 /* ══════════════════════════════════════════
@@ -1153,162 +1171,367 @@ function renderEquipo() {
 /* ══════════════════════════════════════════
    CHARTS
 ══════════════════════════════════════════ */
-const CHART_DEFAULTS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { labels: { color: '#6b7a99', font: { size: 11 } } } },
-  scales: {
-    x: { ticks: { color: '#6b7a99', font:{size:11} }, grid: { color: '#dde2ed' } },
-    y: { ticks: { color: '#6b7a99', font:{size:11} }, grid: { color: '#dde2ed' } }
-  }
+
+// Shared style tokens
+const C = {
+  blue:   '#1a6ef0',
+  teal:   '#0aab8e',
+  orange: '#d4600a',
+  red:    '#d93025',
+  green:  '#1a9e47',
+  yellow: '#b87800',
+  muted:  '#6b7a99',
+  grid:   '#eaecf4',
+  text:   '#6b7a99',
 };
+
+// Clean base options — no borders, minimal grid, no box shadows
+Chart.defaults.font.family = "'Inter','Segoe UI',system-ui,sans-serif";
+Chart.defaults.plugins.legend.labels.boxWidth  = 10;
+Chart.defaults.plugins.legend.labels.boxHeight = 10;
+Chart.defaults.plugins.legend.labels.padding   = 16;
+Chart.defaults.plugins.tooltip.padding         = 10;
+Chart.defaults.plugins.tooltip.cornerRadius    = 6;
+Chart.defaults.plugins.tooltip.titleFont       = { size: 12, weight: '600' };
+Chart.defaults.plugins.tooltip.bodyFont        = { size: 12 };
+Chart.defaults.plugins.tooltip.backgroundColor = '#ffffff';
+Chart.defaults.plugins.tooltip.titleColor      = '#1a2236';
+Chart.defaults.plugins.tooltip.bodyColor       = '#6b7a99';
+Chart.defaults.plugins.tooltip.borderColor     = '#dde2ed';
+Chart.defaults.plugins.tooltip.borderWidth     = 1;
+
+function baseScales(yMin, yMax) {
+  return {
+    x: {
+      ticks:  { color: C.text, font:{size:11}, maxRotation:0 },
+      grid:   { display: false },
+      border: { display: false }
+    },
+    y: {
+      min: yMin, max: yMax,
+      ticks:  { color: C.text, font:{size:11} },
+      grid:   { color: C.grid, drawBorder: false },
+      border: { display: false }
+    }
+  };
+}
 
 function mkChart(id, type, data, options={}) {
   const el = document.getElementById(id);
   if (!el) return;
-  const existing = Chart.getChart(el);
-  if (existing) existing.destroy();
-  return new Chart(el, { type, data, options: {...CHART_DEFAULTS, ...options} });
+  const ex = Chart.getChart(el);
+  if (ex) ex.destroy();
+  const base = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: C.text, font:{size:11} } } },
+    scales: baseScales()
+  };
+  return new Chart(el, { type, data, options: deepMerge(base, options) });
+}
+
+function deepMerge(a, b) {
+  const out = {...a};
+  for (const k in b) {
+    if (b[k] && typeof b[k]==='object' && !Array.isArray(b[k]))
+      out[k] = deepMerge(a[k]||{}, b[k]);
+    else out[k] = b[k];
+  }
+  return out;
 }
 
 function initCharts() {
-  // Productividad mensual
+
+  // ── OVERVIEW: Productividad mensual (área limpia) ──────────────────────────
   mkChart('chartProd', 'line', {
     labels: DATA.meses,
-    datasets: [{
-      label: 'Productividad %',
-      data: DATA.prodMensual,
-      borderColor: '#1a7df8',
-      backgroundColor: 'rgba(26,110,240,.1)',
-      tension: .4, fill: true, pointBackgroundColor:'#1a7df8',
-    },{
-      label: 'Meta 90%',
-      data: Array(5).fill(90),
-      borderColor: '#f85149', borderDash: [4,4], borderWidth:1,
-      pointRadius:0, fill:false
-    }]
-  }, { plugins:{ legend:{ labels:{color:'#6b7a99',font:{size:11}} } } });
+    datasets: [
+      {
+        label: 'Productividad %',
+        data: DATA.prodMensual,
+        borderColor: C.blue, borderWidth: 2,
+        backgroundColor: 'rgba(26,110,240,.07)',
+        tension: .35, fill: true,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: C.blue,
+        pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
+      },
+      {
+        label: 'Meta 90%',
+        data: Array(5).fill(90),
+        borderColor: C.red, borderDash: [5,4], borderWidth: 1.5,
+        pointRadius: 0, fill: false
+      }
+    ]
+  }, {
+    scales: baseScales(85, 102),
+    plugins: { legend:{ labels:{color:C.text,font:{size:11}} } }
+  });
 
-  // Horas totales vs productivas
+  // ── OVERVIEW: Horas totales vs productivas (barras simples) ───────────────
   mkChart('chartHrsTotal', 'bar', {
     labels: DATA.meses,
     datasets: [
-      { label:'Horas totales',    data: DATA.hsTotal, backgroundColor:'rgba(26,110,240,.6)' },
-      { label:'Horas productivas', data: DATA.hsProd,  backgroundColor:'rgba(10,171,142,.7)' }
+      { label:'Capacidad total',   data: DATA.hsTotal, backgroundColor:'#dce8fd', borderRadius:4 },
+      { label:'Horas productivas', data: DATA.hsProd,  backgroundColor: C.blue,  borderRadius:4 }
     ]
+  }, {
+    scales: baseScales(),
+    plugins: { legend:{ labels:{color:C.text,font:{size:11}} } }
   });
 
-  // Facturable vs OPEX (donut)
+  // ── OVERVIEW: Facturable vs OPEX (donut fino) ─────────────────────────────
   mkChart('chartFactOp', 'doughnut', {
-    labels: ['Facturable','OPEX / No facturable'],
-    datasets: [{ data:[DATA.factPct.fact, DATA.factPct.opex],
-      backgroundColor:['rgba(10,171,142,.8)','rgba(217,48,37,.6)'],
-      borderColor:['#0fc4a7','#f85149'], borderWidth:2
+    labels: ['Facturable','No facturable'],
+    datasets: [{
+      data: [DATA.factPct.fact, DATA.factPct.opex],
+      backgroundColor: [C.teal, '#f0f2f8'],
+      borderColor:     ['#fff','#fff'],
+      borderWidth: 3,
+      hoverOffset: 4
     }]
-  }, { scales:{}, plugins:{ legend:{ position:'bottom', labels:{color:'#6b7a99',font:{size:11}} } } });
-
-  // ZAP equipo
-  mkChart('chartZapHrs', 'bar', {
-    labels: DATA.zapEquipo.labels,
-    datasets: [{ label:'Horas reales', data: DATA.zapEquipo.data,
-      backgroundColor:['rgba(26,110,240,.7)','rgba(10,171,142,.7)','rgba(212,96,10,.7)']
-    }]
-  },{indexAxis:'y'});
-
-  // DIF equipo
-  mkChart('chartDifHrs', 'bar', {
-    labels: DATA.difEquipo.labels,
-    datasets: [{ label:'Horas reales', data: DATA.difEquipo.data,
-      backgroundColor:'rgba(26,110,240,.6)'
-    }]
-  },{indexAxis:'y'});
-
-  // Avance horas
-  mkChart('chartAvance', 'bar', {
-    labels: DATA.avanceHs.labels,
-    datasets: [
-      { label:'Reales', data: DATA.avanceHs.reales,    backgroundColor:'rgba(10,171,142,.8)' },
-      { label:'Restantes', data: DATA.avanceHs.restantes, backgroundColor:'rgba(26,110,240,.4)' }
-    ]
-  },{plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}}});
-
-  // FORCAS proyectos
-  mkChart('chartForcas', 'bar', {
-    labels: DATA.forcas.labels,
-    datasets: [
-      { label:'Presupuesto', data: DATA.forcas.presupuesto, backgroundColor:'rgba(26,110,240,.4)' },
-      { label:'Costo real',  data: DATA.forcas.costoReal,   backgroundColor:'rgba(10,171,142,.7)' },
-      { label:'Proy. final', data: DATA.forcas.proyFinal,   backgroundColor:'rgba(212,96,10,.7)' }
-    ]
-  },{plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}}});
-
-  // Rentabilidad por proyecto
-  mkChart('chartRentProy', 'bar', {
-    labels: DATA.forcas.labels,
-    datasets: [
-      { label:'Presupuesto', data: DATA.forcas.presupuesto, backgroundColor:'rgba(26,110,240,.3)' },
-      { label:'Costo real',  data: DATA.forcas.costoReal,   backgroundColor:'rgba(10,171,142,.6)' },
-      { label:'Proy. costo final', data: DATA.forcas.proyFinal, backgroundColor:'rgba(212,96,10,.6)' }
-    ]
-  },{plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}}});
-
-  // Costo hora por perfil
-  mkChart('chartCostoHora', 'bar', {
-    labels: DATA.costoHoraAbr.labels,
-    datasets: [
-      { label:'Costo real/h (ARS)', data: DATA.costoHoraAbr.costo, backgroundColor:'rgba(26,110,240,.7)' },
-      { label:'Costo de venta/h',   data: DATA.costoHoraAbr.venta,  backgroundColor:'rgba(10,171,142,.6)' }
-    ]
-  });
-
-  // Evolución costo perfil
-  mkChart('chartCostoEvo', 'line', {
-    labels: DATA.costoEvo.labels,
-    datasets: [
-      { label:'Feb 2026', data: DATA.costoEvo.feb, borderColor:'rgba(26,110,240,.8)',  tension:.4, fill:false },
-      { label:'Mar 2026', data: DATA.costoEvo.mar, borderColor:'rgba(10,171,142,.8)', tension:.4, fill:false },
-      { label:'Abr 2026', data: DATA.costoEvo.abr, borderColor:'rgba(212,96,10,.9)', tension:.4, fill:false }
-    ]
-  });
-
-  // Productividad equipo (Jun)
-  mkChart('chartEquipoProd', 'bar', {
-    labels: DATA.equipoJun.map(r => r.nombre.split(' ')[0]),
-    datasets:[{
-      label:'Productividad %',
-      data: DATA.equipoJun.map(r => +(r.pct*100).toFixed(1)),
-      backgroundColor: DATA.equipoJun.map(r =>
-        r.pct >= .95 ? 'rgba(26,158,71,.7)' : r.pct >= .85 ? 'rgba(184,120,0,.7)' : 'rgba(217,48,37,.7)'
-      )
-    }]
-  },{
-    plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}},
-    scales:{
-      y:{ min:85, max:105, ticks:{color:'#6b7a99',font:{size:11}}, grid:{color:'#dde2ed'} },
-      x:{ ticks:{color:'#6b7a99',font:{size:11}}, grid:{color:'#dde2ed'} }
+  }, {
+    cutout: '72%',
+    scales: {},
+    plugins: {
+      legend:{ position:'bottom', labels:{color:C.text,font:{size:11},padding:14} }
     }
   });
 
-  // Horas proyecto/colaborador Jun
-  mkChart('chartHrsProyCol', 'bar', {
-    labels: ['Daiana Viotti','Msajoza','rciccarello','Mario Reyna','fgodoy','Daniel Martinez','Anabel Alarcon'],
-    datasets: [
-      { label:'ZAP', data:[0,0,1,0,0,0,0], backgroundColor:'rgba(26,110,240,.8)' },
-      { label:'DIF-DO', data:[0,0,2,0,0,2,0], backgroundColor:'rgba(10,171,142,.7)' },
-      { label:'SUAT/Sirona', data:[0,0,0,0,0,0,2], backgroundColor:'rgba(212,96,10,.7)' },
-      { label:'Gestión', data:[0.25,0,0,0,0,0,0], backgroundColor:'rgba(107,122,153,.5)' },
-    ]
+  // ── PROYECTOS: Horas por colaborador ZAP (horizontal) ────────────────────
+  mkChart('chartZapHrs', 'bar', {
+    labels: DATA.zapEquipo.labels,
+    datasets: [{
+      label: 'Horas', data: DATA.zapEquipo.data,
+      backgroundColor: [C.blue, C.teal, C.orange],
+      borderRadius: 4
+    }]
+  }, {
+    indexAxis: 'y',
+    scales: {
+      x: { ticks:{color:C.text,font:{size:11}}, grid:{color:C.grid}, border:{display:false} },
+      y: { ticks:{color:C.text,font:{size:11}}, grid:{display:false}, border:{display:false} }
+    },
+    plugins: { legend:{display:false} }
   });
 
-  // ISO donut
+  // ── PROYECTOS: Horas por colaborador DIF ─────────────────────────────────
+  mkChart('chartDifHrs', 'bar', {
+    labels: DATA.difEquipo.labels,
+    datasets: [{
+      label: 'Horas', data: DATA.difEquipo.data,
+      backgroundColor: C.blue, borderRadius: 4
+    }]
+  }, {
+    indexAxis: 'y',
+    scales: {
+      x: { ticks:{color:C.text,font:{size:11}}, grid:{color:C.grid}, border:{display:false} },
+      y: { ticks:{color:C.text,font:{size:11}}, grid:{display:false}, border:{display:false} }
+    },
+    plugins: { legend:{display:false} }
+  });
+
+  // ── SPRINT BURNDOWN (DIF-DO, sprint actual) ───────────────────────────────
+  // Días del sprint vs puntos restantes
+  mkChart('chartBurndown', 'line', {
+    labels: ['D1','D2','D3','D4','D5','D6','D7','D8','D9','D10'],
+    datasets: [
+      {
+        label: 'Ideal',
+        data: [52,46,40,35,29,23,17,12,6,0],
+        borderColor: '#dde2ed', borderDash:[5,4], borderWidth:1.5,
+        pointRadius:0, fill:false
+      },
+      {
+        label: 'Real',
+        data: [52,50,45,44,38,30,28,22,null,null],
+        borderColor: C.blue, borderWidth:2,
+        backgroundColor:'rgba(26,110,240,.06)',
+        tension:.2, fill:true,
+        pointBackgroundColor:'#fff', pointBorderColor:C.blue,
+        pointBorderWidth:2, pointRadius:4
+      }
+    ]
+  }, {
+    scales: {
+      ...baseScales(0, 60),
+      y: {
+        min:0, max:60,
+        ticks:{color:C.text,font:{size:11},stepSize:10},
+        grid:{color:C.grid}, border:{display:false},
+        title:{display:true,text:'Story Points',color:C.muted,font:{size:10}}
+      }
+    },
+    plugins: { legend:{ labels:{color:C.text,font:{size:11}} } }
+  });
+
+  // ── SPRINT BURN-UP (acumulado de entregado vs scope) ─────────────────────
+  mkChart('chartBurnup', 'line', {
+    labels: ['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11','S12'],
+    datasets: [
+      {
+        label: 'Scope total',
+        data: [240,240,248,248,256,256,256,256,264,264,264,264],
+        borderColor:'#dde2ed', borderDash:[5,4], borderWidth:1.5,
+        pointRadius:0, fill:false
+      },
+      {
+        label: 'Entregado acumulado',
+        data: [18,40,58,82,104,122,148,168,185,204,224,null],
+        borderColor: C.teal, borderWidth:2,
+        backgroundColor:'rgba(10,171,142,.07)',
+        tension:.3, fill:true,
+        pointBackgroundColor:'#fff', pointBorderColor:C.teal,
+        pointBorderWidth:2, pointRadius:4
+      }
+    ]
+  }, {
+    scales: {
+      ...baseScales(0,300),
+      y: {
+        min:0,max:300,
+        ticks:{color:C.text,font:{size:11},stepSize:60},
+        grid:{color:C.grid}, border:{display:false},
+        title:{display:true,text:'Story Points',color:C.muted,font:{size:10}}
+      }
+    },
+    plugins: { legend:{ labels:{color:C.text,font:{size:11}} } }
+  });
+
+  // ── VELOCITY (story points completados por sprint) ────────────────────────
+  mkChart('chartVelocity', 'bar', {
+    labels: ['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11'],
+    datasets: [
+      {
+        label: 'Completado',
+        data: [18,22,18,24,22,18,26,20,17,19,20],
+        backgroundColor: DATA.velocityData.map((v,i) =>
+          v >= DATA.velocityAvg ? C.blue : 'rgba(26,110,240,.35)'
+        ),
+        borderRadius: 4
+      },
+      {
+        label: 'Promedio',
+        data: Array(11).fill(DATA.velocityAvg),
+        type: 'line',
+        borderColor: C.orange, borderDash:[4,3], borderWidth:1.5,
+        pointRadius:0, fill:false
+      }
+    ]
+  }, {
+    scales: {
+      x: { ticks:{color:C.text,font:{size:11}}, grid:{display:false}, border:{display:false} },
+      y: {
+        min:0,
+        ticks:{color:C.text,font:{size:11},stepSize:5},
+        grid:{color:C.grid}, border:{display:false}
+      }
+    },
+    plugins: { legend:{ labels:{color:C.text,font:{size:11}} } }
+  });
+
+  // ── PROYECTOS: FORCAS costo final ─────────────────────────────────────────
+  mkChart('chartForcas', 'bar', {
+    labels: DATA.forcas.labels,
+    datasets: [
+      { label:'Presupuesto', data:DATA.forcas.presupuesto, backgroundColor:'#dce8fd', borderRadius:4 },
+      { label:'Costo real',  data:DATA.forcas.costoReal,   backgroundColor:C.teal,   borderRadius:4 },
+      { label:'Proy. final', data:DATA.forcas.proyFinal,   backgroundColor:C.orange, borderRadius:4 }
+    ]
+  }, {
+    scales: baseScales(),
+    plugins:{ legend:{labels:{color:C.text,font:{size:11}}} }
+  });
+
+  // ── RENTABILIDAD: FORCAS por proyecto ────────────────────────────────────
+  mkChart('chartRentProy', 'bar', {
+    labels: DATA.forcas.labels,
+    datasets: [
+      { label:'Presupuesto',      data:DATA.forcas.presupuesto, backgroundColor:'#dce8fd', borderRadius:4 },
+      { label:'Costo real',       data:DATA.forcas.costoReal,   backgroundColor:C.teal,   borderRadius:4 },
+      { label:'Proy. costo final',data:DATA.forcas.proyFinal,   backgroundColor:C.orange, borderRadius:4 }
+    ]
+  }, {
+    scales: baseScales(),
+    plugins:{ legend:{labels:{color:C.text,font:{size:11}}} }
+  });
+
+  // ── RENTABILIDAD: Costo hora por perfil ──────────────────────────────────
+  mkChart('chartCostoHora', 'bar', {
+    labels: DATA.costoHoraAbr.labels,
+    datasets: [
+      { label:'Costo COGS/h', data:DATA.costoHoraAbr.costo, backgroundColor:C.blue,   borderRadius:4 },
+      { label:'Precio venta', data:DATA.costoHoraAbr.venta, backgroundColor:'#dce8fd', borderRadius:4 }
+    ]
+  }, {
+    scales: baseScales(),
+    plugins:{ legend:{labels:{color:C.text,font:{size:11}}} }
+  });
+
+  // ── RENTABILIDAD: Evolución costo por perfil ─────────────────────────────
+  mkChart('chartCostoEvo', 'line', {
+    labels: DATA.costoEvo.labels,
+    datasets: [
+      { label:'Feb 26', data:DATA.costoEvo.feb, borderColor:'#a0b4f0', borderWidth:2, tension:.3, fill:false, pointRadius:3, pointBackgroundColor:'#fff', pointBorderColor:'#a0b4f0', pointBorderWidth:2 },
+      { label:'Mar 26', data:DATA.costoEvo.mar, borderColor:C.teal,   borderWidth:2, tension:.3, fill:false, pointRadius:3, pointBackgroundColor:'#fff', pointBorderColor:C.teal, pointBorderWidth:2 },
+      { label:'Abr 26', data:DATA.costoEvo.abr, borderColor:C.blue,   borderWidth:2, tension:.3, fill:false, pointRadius:3, pointBackgroundColor:'#fff', pointBorderColor:C.blue, pointBorderWidth:2 }
+    ]
+  }, {
+    scales: baseScales(),
+    plugins:{ legend:{labels:{color:C.text,font:{size:11}}} }
+  });
+
+  // ── EQUIPO: Productividad individual ─────────────────────────────────────
+  mkChart('chartEquipoProd', 'bar', {
+    labels: DATA.equipoJun.map(r => r.nombre.split(' ')[0]),
+    datasets:[{
+      label: 'Productividad %',
+      data: DATA.equipoJun.map(r => +(r.pct*100).toFixed(1)),
+      backgroundColor: DATA.equipoJun.map(r =>
+        r.pct >= .95 ? C.green : r.pct >= .85 ? C.yellow : C.red
+      ),
+      borderRadius: 4
+    }]
+  }, {
+    scales: {
+      x: { ticks:{color:C.text,font:{size:11}}, grid:{display:false}, border:{display:false} },
+      y: { min:85,max:105, ticks:{color:C.text,font:{size:11},stepSize:5}, grid:{color:C.grid}, border:{display:false} }
+    },
+    plugins:{ legend:{display:false} }
+  });
+
+  // ── EQUIPO: Horas por proyecto/colaborador ────────────────────────────────
+  mkChart('chartHrsProyCol', 'bar', {
+    labels: ['D. Viotti','Msajoza','R. Ciccarello','M. Reyna','F. Godoy','D. Martinez','A. Alarcon'],
+    datasets: [
+      { label:'ZAP',        data:[0,0,1,0,0,0,0],    backgroundColor:C.blue,            borderRadius:4 },
+      { label:'DIF-DO',     data:[0,0,2,0,0,2,0],    backgroundColor:C.teal,            borderRadius:4 },
+      { label:'SUAT/Sirona',data:[0,0,0,0,0,0,2],    backgroundColor:C.orange,          borderRadius:4 },
+      { label:'Gestión',    data:[0.25,0,0,0,0,0,0], backgroundColor:'#e2e6f0',         borderRadius:4 }
+    ]
+  }, {
+    scales: {
+      x: { ticks:{color:C.text,font:{size:11}}, grid:{display:false}, border:{display:false}, stacked:true },
+      y: { ticks:{color:C.text,font:{size:11}}, grid:{color:C.grid},  border:{display:false}, stacked:true }
+    },
+    plugins:{ legend:{labels:{color:C.text,font:{size:11}}} }
+  });
+
+  // ── ISO: Estado indicadores (donut simple) ────────────────────────────────
   mkChart('chartIsoStatus', 'doughnut', {
-    labels:['Verde ✓','Amarillo ⚠','Rojo ✗'],
+    labels:['Cumple','En seguimiento','No cumple'],
     datasets:[{
       data:[DATA.isoStatus.verde, DATA.isoStatus.amarillo, DATA.isoStatus.rojo],
-      backgroundColor:['rgba(26,158,71,.75)','rgba(184,120,0,.75)','rgba(217,48,37,.75)'],
-      borderColor:['#3fb950','#d29922','#f85149'], borderWidth:2
+      backgroundColor:[C.green, C.yellow, C.red],
+      borderColor:'#ffffff',
+      borderWidth: 3,
+      hoverOffset: 4
     }]
-  },{scales:{}, plugins:{legend:{position:'bottom',labels:{color:'#6b7a99',font:{size:11}}}}});
+  }, {
+    cutout: '68%',
+    scales:{},
+    plugins:{ legend:{ position:'bottom', labels:{color:C.text,font:{size:11},padding:14} } }
+  });
 }
 
 /* ══════════════════════════════════════════
