@@ -7,18 +7,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg:        #0d1117;
-    --surface:   #161b22;
-    --surface2:  #1c2230;
-    --border:    #2a3345;
-    --accent:    #1a7df8;
-    --accent2:   #0fc4a7;
-    --text:      #e6edf3;
-    --muted:     #8b949e;
-    --green:     #3fb950;
-    --yellow:    #d29922;
-    --red:       #f85149;
-    --orange:    #f0883e;
+    --bg:        #f4f6fa;
+    --surface:   #ffffff;
+    --surface2:  #eef1f7;
+    --border:    #dde2ed;
+    --accent:    #1a6ef0;
+    --accent2:   #0aab8e;
+    --text:      #1a2236;
+    --muted:     #6b7a99;
+    --green:     #1a9e47;
+    --yellow:    #b87800;
+    --red:       #d93025;
+    --orange:    #d4600a;
     --radius:    10px;
     --font:      'Inter', 'Segoe UI', system-ui, sans-serif;
   }
@@ -46,6 +46,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
   }
   .topbar-brand {
     display: flex;
@@ -85,7 +86,7 @@
 
   /* ── NAV TABS ── */
   .tabs {
-    background: var(--surface);
+    background: #ffffff;
     border-bottom: 1px solid var(--border);
     padding: 0 24px;
     display: flex;
@@ -125,7 +126,7 @@
   }
   .db-bar label { color: var(--muted); font-size: 12px; white-space: nowrap; }
   .db-bar input, .db-bar select {
-    background: var(--bg);
+    background: #f4f6fa;
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text);
@@ -173,10 +174,11 @@
 
   /* ── CARDS ── */
   .card {
-    background: var(--surface);
+    background: #ffffff;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
   }
   .card-title {
     font-size: 11px;
@@ -228,7 +230,7 @@
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
-  tbody tr { border-bottom: 1px solid #1e2739; transition: background .1s; }
+  tbody tr { border-bottom: 1px solid #eef1f7; transition: background .1s; }
   tbody tr:hover { background: var(--surface2); }
   tbody td { padding: 10px 10px; vertical-align: middle; }
   tbody tr:last-child { border-bottom: none; }
@@ -256,12 +258,12 @@
     font-size: 11px;
     font-weight: 600;
   }
-  .badge-green  { background: rgba(63,185,80,.15);  color: var(--green); }
-  .badge-yellow { background: rgba(210,153,34,.15); color: var(--yellow); }
-  .badge-red    { background: rgba(248,81,73,.15);  color: var(--red); }
-  .badge-blue   { background: rgba(26,125,248,.15); color: var(--accent); }
-  .badge-teal   { background: rgba(15,196,167,.15); color: var(--accent2); }
-  .badge-gray   { background: rgba(139,148,158,.1); color: var(--muted); }
+  .badge-green  { background: rgba(26,158,71,.12);  color: var(--green); }
+  .badge-yellow { background: rgba(184,120,0,.12); color: var(--yellow); }
+  .badge-red    { background: rgba(217,48,37,.12);  color: var(--red); }
+  .badge-blue   { background: rgba(26,110,240,.12); color: var(--accent); }
+  .badge-teal   { background: rgba(10,171,142,.12); color: var(--accent2); }
+  .badge-gray   { background: rgba(107,122,153,.1); color: var(--muted); }
 
   /* ── CHART CONTAINER ── */
   .chart-box { position: relative; height: 220px; }
@@ -278,9 +280,9 @@
     font-size: 12px;
   }
   .alert-item:last-child { margin-bottom: 0; }
-  .alert-item.warn { background: rgba(210,153,34,.1); border-left: 3px solid var(--yellow); }
-  .alert-item.crit { background: rgba(248,81,73,.1);  border-left: 3px solid var(--red); }
-  .alert-item.ok   { background: rgba(63,185,80,.07); border-left: 3px solid var(--green); }
+  .alert-item.warn { background: rgba(184,120,0,.08); border-left: 3px solid var(--yellow); }
+  .alert-item.crit { background: rgba(217,48,37,.08); border-left: 3px solid var(--red); }
+  .alert-item.ok   { background: rgba(26,158,71,.07); border-left: 3px solid var(--green); }
   .alert-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
   .alert-text { color: var(--text); line-height: 1.4; }
   .alert-text strong { font-weight: 600; }
@@ -301,14 +303,14 @@
   }
   .iso-item:last-child { border-bottom: none; }
   .iso-check { width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 1px; }
-  .iso-check.ok   { background: rgba(63,185,80,.2);  color: var(--green); }
-  .iso-check.warn { background: rgba(210,153,34,.2); color: var(--yellow); }
-  .iso-check.miss { background: rgba(248,81,73,.15); color: var(--red); }
+  .iso-check.ok   { background: rgba(26,158,71,.15);  color: var(--green); }
+  .iso-check.warn { background: rgba(184,120,0,.15); color: var(--yellow); }
+  .iso-check.miss { background: rgba(217,48,37,.12); color: var(--red); }
   .iso-text { font-size: 12px; line-height: 1.5; }
   .iso-text strong { display: block; font-size: 13px; margin-bottom: 2px; }
 
   /* ── FOOTER ── */
-  .footer { text-align: center; color: var(--muted); font-size: 11px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+  .footer { text-align: center; color: var(--muted); font-size: 11px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; background: #f4f6fa; }
 </style>
 </head>
 <body>
@@ -854,27 +856,27 @@
         <div style="display:flex; gap:10px; flex-wrap:wrap; width:100%">
           <div style="flex:1; min-width:180px">
             <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Host</label>
-            <input type="text" id="cfg-host" value="localhost" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+            <input type="text" id="cfg-host" value="localhost" style="width:100%; padding:8px 10px; background:#f4f6fa; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
           </div>
           <div style="width:90px">
             <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Puerto</label>
-            <input type="number" id="cfg-port" value="5432" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+            <input type="number" id="cfg-port" value="5432" style="width:100%; padding:8px 10px; background:#f4f6fa; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
           </div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap; width:100%">
           <div style="flex:1">
             <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Base de datos</label>
-            <input type="text" id="cfg-db" value="ithreex_ops" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+            <input type="text" id="cfg-db" value="ithreex_ops" style="width:100%; padding:8px 10px; background:#f4f6fa; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
           </div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap; width:100%">
           <div style="flex:1">
             <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Usuario</label>
-            <input type="text" id="cfg-user" value="dm_user" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+            <input type="text" id="cfg-user" value="dm_user" style="width:100%; padding:8px 10px; background:#f4f6fa; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
           </div>
           <div style="flex:1">
             <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Contraseña</label>
-            <input type="password" id="cfg-pass" placeholder="••••••••" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+            <input type="password" id="cfg-pass" placeholder="••••••••" style="width:100%; padding:8px 10px; background:#f4f6fa; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
           </div>
         </div>
         <div style="display:flex; gap:10px; margin-top:8px">
@@ -887,7 +889,7 @@
 
     <div class="card">
       <div class="card-title">Esquema recomendado PostgreSQL</div>
-      <pre style="background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:14px; font-size:11px; color:var(--accent2); overflow-x:auto; line-height:1.7">-- Proyectos
+      <pre style="background:#f0f4fb; border:1px solid var(--border); border-radius:6px; padding:14px; font-size:11px; color:var(--accent2); overflow-x:auto; line-height:1.7">-- Proyectos
 CREATE TABLE proyectos (
   id          SERIAL PRIMARY KEY,
   nombre      TEXT NOT NULL,
@@ -1154,10 +1156,10 @@ function renderEquipo() {
 const CHART_DEFAULTS = {
   responsive: true,
   maintainAspectRatio: false,
-  plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
+  plugins: { legend: { labels: { color: '#6b7a99', font: { size: 11 } } } },
   scales: {
-    x: { ticks: { color: '#8b949e', font:{size:11} }, grid: { color: '#2a3345' } },
-    y: { ticks: { color: '#8b949e', font:{size:11} }, grid: { color: '#2a3345' } }
+    x: { ticks: { color: '#6b7a99', font:{size:11} }, grid: { color: '#dde2ed' } },
+    y: { ticks: { color: '#6b7a99', font:{size:11} }, grid: { color: '#dde2ed' } }
   }
 };
 
@@ -1177,7 +1179,7 @@ function initCharts() {
       label: 'Productividad %',
       data: DATA.prodMensual,
       borderColor: '#1a7df8',
-      backgroundColor: 'rgba(26,125,248,.1)',
+      backgroundColor: 'rgba(26,110,240,.1)',
       tension: .4, fill: true, pointBackgroundColor:'#1a7df8',
     },{
       label: 'Meta 90%',
@@ -1185,14 +1187,14 @@ function initCharts() {
       borderColor: '#f85149', borderDash: [4,4], borderWidth:1,
       pointRadius:0, fill:false
     }]
-  }, { plugins:{ legend:{ labels:{color:'#8b949e',font:{size:11}} } } });
+  }, { plugins:{ legend:{ labels:{color:'#6b7a99',font:{size:11}} } } });
 
   // Horas totales vs productivas
   mkChart('chartHrsTotal', 'bar', {
     labels: DATA.meses,
     datasets: [
-      { label:'Horas totales',    data: DATA.hsTotal, backgroundColor:'rgba(26,125,248,.6)' },
-      { label:'Horas productivas', data: DATA.hsProd,  backgroundColor:'rgba(15,196,167,.7)' }
+      { label:'Horas totales',    data: DATA.hsTotal, backgroundColor:'rgba(26,110,240,.6)' },
+      { label:'Horas productivas', data: DATA.hsProd,  backgroundColor:'rgba(10,171,142,.7)' }
     ]
   });
 
@@ -1200,16 +1202,16 @@ function initCharts() {
   mkChart('chartFactOp', 'doughnut', {
     labels: ['Facturable','OPEX / No facturable'],
     datasets: [{ data:[DATA.factPct.fact, DATA.factPct.opex],
-      backgroundColor:['rgba(15,196,167,.8)','rgba(248,81,73,.6)'],
+      backgroundColor:['rgba(10,171,142,.8)','rgba(217,48,37,.6)'],
       borderColor:['#0fc4a7','#f85149'], borderWidth:2
     }]
-  }, { scales:{}, plugins:{ legend:{ position:'bottom', labels:{color:'#8b949e',font:{size:11}} } } });
+  }, { scales:{}, plugins:{ legend:{ position:'bottom', labels:{color:'#6b7a99',font:{size:11}} } } });
 
   // ZAP equipo
   mkChart('chartZapHrs', 'bar', {
     labels: DATA.zapEquipo.labels,
     datasets: [{ label:'Horas reales', data: DATA.zapEquipo.data,
-      backgroundColor:['rgba(26,125,248,.7)','rgba(15,196,167,.7)','rgba(240,136,62,.7)']
+      backgroundColor:['rgba(26,110,240,.7)','rgba(10,171,142,.7)','rgba(212,96,10,.7)']
     }]
   },{indexAxis:'y'});
 
@@ -1217,7 +1219,7 @@ function initCharts() {
   mkChart('chartDifHrs', 'bar', {
     labels: DATA.difEquipo.labels,
     datasets: [{ label:'Horas reales', data: DATA.difEquipo.data,
-      backgroundColor:'rgba(26,125,248,.6)'
+      backgroundColor:'rgba(26,110,240,.6)'
     }]
   },{indexAxis:'y'});
 
@@ -1225,37 +1227,37 @@ function initCharts() {
   mkChart('chartAvance', 'bar', {
     labels: DATA.avanceHs.labels,
     datasets: [
-      { label:'Reales', data: DATA.avanceHs.reales,    backgroundColor:'rgba(15,196,167,.8)' },
-      { label:'Restantes', data: DATA.avanceHs.restantes, backgroundColor:'rgba(26,125,248,.4)' }
+      { label:'Reales', data: DATA.avanceHs.reales,    backgroundColor:'rgba(10,171,142,.8)' },
+      { label:'Restantes', data: DATA.avanceHs.restantes, backgroundColor:'rgba(26,110,240,.4)' }
     ]
-  },{plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}}});
+  },{plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}}});
 
   // FORCAS proyectos
   mkChart('chartForcas', 'bar', {
     labels: DATA.forcas.labels,
     datasets: [
-      { label:'Presupuesto', data: DATA.forcas.presupuesto, backgroundColor:'rgba(26,125,248,.4)' },
-      { label:'Costo real',  data: DATA.forcas.costoReal,   backgroundColor:'rgba(15,196,167,.7)' },
-      { label:'Proy. final', data: DATA.forcas.proyFinal,   backgroundColor:'rgba(240,136,62,.7)' }
+      { label:'Presupuesto', data: DATA.forcas.presupuesto, backgroundColor:'rgba(26,110,240,.4)' },
+      { label:'Costo real',  data: DATA.forcas.costoReal,   backgroundColor:'rgba(10,171,142,.7)' },
+      { label:'Proy. final', data: DATA.forcas.proyFinal,   backgroundColor:'rgba(212,96,10,.7)' }
     ]
-  },{plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}}});
+  },{plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}}});
 
   // Rentabilidad por proyecto
   mkChart('chartRentProy', 'bar', {
     labels: DATA.forcas.labels,
     datasets: [
-      { label:'Presupuesto', data: DATA.forcas.presupuesto, backgroundColor:'rgba(26,125,248,.3)' },
-      { label:'Costo real',  data: DATA.forcas.costoReal,   backgroundColor:'rgba(15,196,167,.6)' },
-      { label:'Proy. costo final', data: DATA.forcas.proyFinal, backgroundColor:'rgba(240,136,62,.6)' }
+      { label:'Presupuesto', data: DATA.forcas.presupuesto, backgroundColor:'rgba(26,110,240,.3)' },
+      { label:'Costo real',  data: DATA.forcas.costoReal,   backgroundColor:'rgba(10,171,142,.6)' },
+      { label:'Proy. costo final', data: DATA.forcas.proyFinal, backgroundColor:'rgba(212,96,10,.6)' }
     ]
-  },{plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}}});
+  },{plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}}});
 
   // Costo hora por perfil
   mkChart('chartCostoHora', 'bar', {
     labels: DATA.costoHoraAbr.labels,
     datasets: [
-      { label:'Costo real/h (ARS)', data: DATA.costoHoraAbr.costo, backgroundColor:'rgba(26,125,248,.7)' },
-      { label:'Costo de venta/h',   data: DATA.costoHoraAbr.venta,  backgroundColor:'rgba(15,196,167,.6)' }
+      { label:'Costo real/h (ARS)', data: DATA.costoHoraAbr.costo, backgroundColor:'rgba(26,110,240,.7)' },
+      { label:'Costo de venta/h',   data: DATA.costoHoraAbr.venta,  backgroundColor:'rgba(10,171,142,.6)' }
     ]
   });
 
@@ -1263,9 +1265,9 @@ function initCharts() {
   mkChart('chartCostoEvo', 'line', {
     labels: DATA.costoEvo.labels,
     datasets: [
-      { label:'Feb 2026', data: DATA.costoEvo.feb, borderColor:'rgba(26,125,248,.8)',  tension:.4, fill:false },
-      { label:'Mar 2026', data: DATA.costoEvo.mar, borderColor:'rgba(15,196,167,.8)', tension:.4, fill:false },
-      { label:'Abr 2026', data: DATA.costoEvo.abr, borderColor:'rgba(240,136,62,.9)', tension:.4, fill:false }
+      { label:'Feb 2026', data: DATA.costoEvo.feb, borderColor:'rgba(26,110,240,.8)',  tension:.4, fill:false },
+      { label:'Mar 2026', data: DATA.costoEvo.mar, borderColor:'rgba(10,171,142,.8)', tension:.4, fill:false },
+      { label:'Abr 2026', data: DATA.costoEvo.abr, borderColor:'rgba(212,96,10,.9)', tension:.4, fill:false }
     ]
   });
 
@@ -1276,14 +1278,14 @@ function initCharts() {
       label:'Productividad %',
       data: DATA.equipoJun.map(r => +(r.pct*100).toFixed(1)),
       backgroundColor: DATA.equipoJun.map(r =>
-        r.pct >= .95 ? 'rgba(63,185,80,.7)' : r.pct >= .85 ? 'rgba(210,153,34,.7)' : 'rgba(248,81,73,.7)'
+        r.pct >= .95 ? 'rgba(26,158,71,.7)' : r.pct >= .85 ? 'rgba(184,120,0,.7)' : 'rgba(217,48,37,.7)'
       )
     }]
   },{
-    plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}},
+    plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}},
     scales:{
-      y:{ min:85, max:105, ticks:{color:'#8b949e',font:{size:11}}, grid:{color:'#2a3345'} },
-      x:{ ticks:{color:'#8b949e',font:{size:11}}, grid:{color:'#2a3345'} }
+      y:{ min:85, max:105, ticks:{color:'#6b7a99',font:{size:11}}, grid:{color:'#dde2ed'} },
+      x:{ ticks:{color:'#6b7a99',font:{size:11}}, grid:{color:'#dde2ed'} }
     }
   });
 
@@ -1291,10 +1293,10 @@ function initCharts() {
   mkChart('chartHrsProyCol', 'bar', {
     labels: ['Daiana Viotti','Msajoza','rciccarello','Mario Reyna','fgodoy','Daniel Martinez','Anabel Alarcon'],
     datasets: [
-      { label:'ZAP', data:[0,0,1,0,0,0,0], backgroundColor:'rgba(26,125,248,.8)' },
-      { label:'DIF-DO', data:[0,0,2,0,0,2,0], backgroundColor:'rgba(15,196,167,.7)' },
-      { label:'SUAT/Sirona', data:[0,0,0,0,0,0,2], backgroundColor:'rgba(240,136,62,.7)' },
-      { label:'Gestión', data:[0.25,0,0,0,0,0,0], backgroundColor:'rgba(139,148,158,.5)' },
+      { label:'ZAP', data:[0,0,1,0,0,0,0], backgroundColor:'rgba(26,110,240,.8)' },
+      { label:'DIF-DO', data:[0,0,2,0,0,2,0], backgroundColor:'rgba(10,171,142,.7)' },
+      { label:'SUAT/Sirona', data:[0,0,0,0,0,0,2], backgroundColor:'rgba(212,96,10,.7)' },
+      { label:'Gestión', data:[0.25,0,0,0,0,0,0], backgroundColor:'rgba(107,122,153,.5)' },
     ]
   });
 
@@ -1303,10 +1305,10 @@ function initCharts() {
     labels:['Verde ✓','Amarillo ⚠','Rojo ✗'],
     datasets:[{
       data:[DATA.isoStatus.verde, DATA.isoStatus.amarillo, DATA.isoStatus.rojo],
-      backgroundColor:['rgba(63,185,80,.75)','rgba(210,153,34,.75)','rgba(248,81,73,.75)'],
+      backgroundColor:['rgba(26,158,71,.75)','rgba(184,120,0,.75)','rgba(217,48,37,.75)'],
       borderColor:['#3fb950','#d29922','#f85149'], borderWidth:2
     }]
-  },{scales:{}, plugins:{legend:{position:'bottom',labels:{color:'#8b949e',font:{size:11}}}}});
+  },{scales:{}, plugins:{legend:{position:'bottom',labels:{color:'#6b7a99',font:{size:11}}}}});
 }
 
 /* ══════════════════════════════════════════
