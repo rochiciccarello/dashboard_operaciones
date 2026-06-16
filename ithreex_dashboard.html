@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IThreex · Operations Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #1c2230;
+    --border:    #2a3345;
+    --accent:    #1a7df8;
+    --accent2:   #0fc4a7;
+    --text:      #e6edf3;
+    --muted:     #8b949e;
+    --green:     #3fb950;
+    --yellow:    #d29922;
+    --red:       #f85149;
+    --orange:    #f0883e;
+    --radius:    10px;
+    --font:      'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: .3px;
+  }
+  .topbar-brand span.pill {
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .conn-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .conn-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--yellow);
+    animation: pulse 2s infinite;
+  }
+  .conn-dot.connected { background: var(--green); animation: none; }
+  .conn-dot.error     { background: var(--red);   animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── NAV TABS ── */
+  .tabs {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover    { color: var(--text); }
+  .tab-btn.active   { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── LAYOUT ── */
+  .content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── DB CONFIG BAR ── */
+  .db-bar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .db-bar label { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .db-bar input, .db-bar select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 5px 10px;
+    font-size: 12px;
+    outline: none;
+    min-width: 0;
+  }
+  .db-bar input:focus { border-color: var(--accent); }
+  .db-bar input[type="password"] { width: 110px; }
+  .db-bar input[type="text"]     { width: 130px; }
+  .db-bar input[type="number"]   { width: 70px; }
+
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { opacity: .85; }
+  .btn.secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+  .btn.sm { padding: 4px 10px; font-size: 11px; }
+
+  /* ── GRID ── */
+  .grid { display: grid; gap: 16px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-1-2 { grid-template-columns: 1fr 2fr; }
+  .grid-2-1 { grid-template-columns: 2fr 1fr; }
+  @media (max-width: 1100px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-1-2, .grid-2-1 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  /* ── KPI CARDS ── */
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-sub { font-size: 12px; color: var(--muted); }
+  .kpi-trend { font-size: 11px; margin-top: 8px; }
+  .kpi-trend.up   { color: var(--green); }
+  .kpi-trend.down { color: var(--red); }
+  .kpi-trend.warn { color: var(--yellow); }
+
+  /* ── SEMAPHORE ── */
+  .sem { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
+  .sem-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .sem.green .sem-dot { background: var(--green); }
+  .sem.yellow .sem-dot { background: var(--yellow); }
+  .sem.red .sem-dot { background: var(--red); }
+  .sem.green { color: var(--green); }
+  .sem.yellow { color: var(--yellow); }
+  .sem.red { color: var(--red); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid #1e2739; transition: background .1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 10px 10px; vertical-align: middle; }
+  tbody tr:last-child { border-bottom: none; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { background: var(--bg); border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 4px; transition: width .4s; }
+
+  /* ── SECTION HEADER ── */
+  .section-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    margin-top: 28px;
+  }
+  .section-hdr:first-child { margin-top: 0; }
+  .section-hdr h2 { font-size: 15px; font-weight: 600; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-green  { background: rgba(63,185,80,.15);  color: var(--green); }
+  .badge-yellow { background: rgba(210,153,34,.15); color: var(--yellow); }
+  .badge-red    { background: rgba(248,81,73,.15);  color: var(--red); }
+  .badge-blue   { background: rgba(26,125,248,.15); color: var(--accent); }
+  .badge-teal   { background: rgba(15,196,167,.15); color: var(--accent2); }
+  .badge-gray   { background: rgba(139,148,158,.1); color: var(--muted); }
+
+  /* ── CHART CONTAINER ── */
+  .chart-box { position: relative; height: 220px; }
+  .chart-box.tall { height: 300px; }
+
+  /* ── ALERT LIST ── */
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 7px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .alert-item:last-child { margin-bottom: 0; }
+  .alert-item.warn { background: rgba(210,153,34,.1); border-left: 3px solid var(--yellow); }
+  .alert-item.crit { background: rgba(248,81,73,.1);  border-left: 3px solid var(--red); }
+  .alert-item.ok   { background: rgba(63,185,80,.07); border-left: 3px solid var(--green); }
+  .alert-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .alert-text { color: var(--text); line-height: 1.4; }
+  .alert-text strong { font-weight: 600; }
+
+  /* ── MINI STAT ── */
+  .mini-stat { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .mini-stat:last-child { border-bottom: none; }
+  .mini-stat-label { color: var(--muted); font-size: 12px; }
+  .mini-stat-val   { font-weight: 600; font-size: 13px; }
+
+  /* ── ISO CHECKLIST ── */
+  .iso-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .iso-item:last-child { border-bottom: none; }
+  .iso-check { width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 1px; }
+  .iso-check.ok   { background: rgba(63,185,80,.2);  color: var(--green); }
+  .iso-check.warn { background: rgba(210,153,34,.2); color: var(--yellow); }
+  .iso-check.miss { background: rgba(248,81,73,.15); color: var(--red); }
+  .iso-text { font-size: 12px; line-height: 1.5; }
+  .iso-text strong { display: block; font-size: 13px; margin-bottom: 2px; }
+
+  /* ── FOOTER ── */
+  .footer { text-align: center; color: var(--muted); font-size: 11px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#1a7df8"/>
+      <path d="M6 8h4v8H6zM10 6h4v10h-4zM14 10h4v6h-4z" fill="white" opacity=".9"/>
+    </svg>
+    IThreex Operations
+    <span class="pill">DM · ISO 9001 · 42001</span>
+  </div>
+  <div class="topbar-right">
+    <div class="conn-indicator">
+      <div class="conn-dot" id="connDot"></div>
+      <span id="connLabel">Sin conexión</span>
+    </div>
+    <button class="btn secondary sm" onclick="showDbConfig()">⚙ BD</button>
+    <button class="btn sm" onclick="refreshAll()">↻ Actualizar</button>
+  </div>
+</header>
+
+<!-- NAV TABS -->
+<nav class="tabs">
+  <button class="tab-btn active" onclick="switchTab('overview')">📊 Resumen Ejecutivo</button>
+  <button class="tab-btn" onclick="switchTab('proyectos')">🗂 Proyectos</button>
+  <button class="tab-btn" onclick="switchTab('equipo')">👥 Equipo</button>
+  <button class="tab-btn" onclick="switchTab('rentabilidad')">💰 Rentabilidad</button>
+  <button class="tab-btn" onclick="switchTab('iso')">✅ ISO 9001 / 42001</button>
+  <button class="tab-btn" onclick="switchTab('config')">🔌 Conexión BD</button>
+</nav>
+
+<main class="content">
+
+<!-- ══════════════════════════════════════════
+     TAB: OVERVIEW
+══════════════════════════════════════════ -->
+<section class="tab-panel active" id="panel-overview">
+
+  <!-- KPIs principales -->
+  <div class="grid grid-4" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Proyectos activos</div>
+      <div class="kpi-value" id="kpi-proyectos-activos">2</div>
+      <div class="kpi-sub">En ejecución actualmente</div>
+      <div class="kpi-trend warn" id="kpi-proyectos-trend">0 en amarillo · 0 en rojo</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Horas facturables (mes)</div>
+      <div class="kpi-value" id="kpi-hs-fact">122</div>
+      <div class="kpi-sub">de <span id="kpi-hs-pres">2.823</span> estimadas totales</div>
+      <div class="kpi-trend" id="kpi-hs-trend">—</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Productividad promedio</div>
+      <div class="kpi-value" id="kpi-prod">96%</div>
+      <div class="kpi-sub">Meta: ≥ 90%</div>
+      <div class="kpi-trend up" id="kpi-prod-trend">↑ vs mes anterior</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Score de salud global</div>
+      <div class="kpi-value" id="kpi-score" style="color:var(--green)">🟢 Saludable</div>
+      <div class="kpi-sub">Semana actual</div>
+      <div class="kpi-trend ok" id="kpi-score-sub">Score ≥ 85 · Escalable</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2-1">
+    <!-- Gráfico productividad mensual -->
+    <div class="card">
+      <div class="card-title">Productividad mensual del equipo <span class="badge badge-blue">Clockify</span></div>
+      <div class="chart-box">
+        <canvas id="chartProd"></canvas>
+      </div>
+    </div>
+    <!-- Alertas -->
+    <div class="card">
+      <div class="card-title">Alertas activas</div>
+      <div id="alertContainer">
+        <div class="alert-item ok">
+          <div class="alert-icon">✅</div>
+          <div class="alert-text"><strong>Productividad OK</strong> — Equipo mayo: 98.6%</div>
+        </div>
+        <div class="alert-item warn">
+          <div class="alert-icon">⚠️</div>
+          <div class="alert-text"><strong>DIF-DO</strong> — Desvío de horas sin calcular. Verificar horas reales en Clockify.</div>
+        </div>
+        <div class="alert-item warn">
+          <div class="alert-icon">⚠️</div>
+          <div class="alert-text"><strong>Evolutivo DIF</strong> — 0 horas registradas. Proyecto inicia junio 2026.</div>
+        </div>
+        <div class="alert-item ok">
+          <div class="alert-icon">✅</div>
+          <div class="alert-text"><strong>ZAP Arquitectos</strong> — Margen proyectado 41.7% · Por encima del umbral.</div>
+        </div>
+        <div class="alert-item warn">
+          <div class="alert-icon">⚠️</div>
+          <div class="alert-text"><strong>Mario Reyna / Mariano B.</strong> — Evaluación individual: No cumple compromisos.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Horas por mes -->
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="card">
+      <div class="card-title">Horas totales vs productivas por mes <span class="badge badge-teal">Seguimiento</span></div>
+      <div class="chart-box">
+        <canvas id="chartHrsTotal"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Distribución horas — Facturable vs OPEX</div>
+      <div class="chart-box">
+        <canvas id="chartFactOp"></canvas>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════
+     TAB: PROYECTOS
+══════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-proyectos">
+
+  <div class="section-hdr">
+    <h2>Estado de proyectos</h2>
+    <button class="btn secondary sm" onclick="loadProyectos()">↻ Recargar</button>
+  </div>
+
+  <div class="table-wrap card" style="padding:0">
+    <table id="tablaProyectos">
+      <thead>
+        <tr>
+          <th>Proyecto</th>
+          <th>Cliente</th>
+          <th>Estado</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th>Hs Est.</th>
+          <th>Hs Reales</th>
+          <th>Desvío</th>
+          <th>Margen</th>
+          <th>Score</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+      <tbody id="tablaProyectosBody">
+        <tr>
+          <td><strong>Agente Proactivo</strong></td>
+          <td>ZAP Arquitectos</td>
+          <td><span class="badge badge-blue">En Curso</span></td>
+          <td>25/02/26</td>
+          <td>19/05/26</td>
+          <td>155</td>
+          <td>122.25</td>
+          <td><span class="sem green"><span class="sem-dot"></span>OK</span></td>
+          <td>41.7%</td>
+          <td><span class="badge badge-green">🟢 85+</span></td>
+          <td><span style="color:var(--muted);font-size:11px">Clockify · Odoo</span></td>
+        </tr>
+        <tr>
+          <td><strong>Agente Det. Oficio</strong></td>
+          <td>DIF</td>
+          <td><span class="badge badge-blue">En Curso</span></td>
+          <td>15/12/25</td>
+          <td>26/03/26</td>
+          <td>1.960</td>
+          <td>1.169.2</td>
+          <td><span class="sem yellow"><span class="sem-dot"></span>Verificar</span></td>
+          <td>65.7%</td>
+          <td><span class="badge badge-yellow">🟡 Monitorear</span></td>
+          <td><span style="color:var(--muted);font-size:11px">Clockify · Odoo</span></td>
+        </tr>
+        <tr>
+          <td><strong>Evolutivo DIF</strong></td>
+          <td>DIF</td>
+          <td><span class="badge badge-teal">Planificado</span></td>
+          <td>08/06/26</td>
+          <td>28/08/26</td>
+          <td>708</td>
+          <td>0</td>
+          <td><span class="sem gray" style="color:var(--muted)"><span class="sem-dot" style="background:var(--muted)"></span>Sin inicio</span></td>
+          <td>—</td>
+          <td><span class="badge badge-gray">Sin datos</span></td>
+          <td><span style="color:var(--muted);font-size:11px">—</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Horas por proyecto -->
+  <div class="grid grid-3" style="margin-top:16px">
+    <div class="card">
+      <div class="card-title">ZAP — Horas por colaborador</div>
+      <div class="chart-box">
+        <canvas id="chartZapHrs"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">DIF-DO — Horas por colaborador</div>
+      <div class="chart-box">
+        <canvas id="chartDifHrs"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Avance de horas — todos los proyectos</div>
+      <div class="chart-box">
+        <canvas id="chartAvance"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Burndown ZAP -->
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="card">
+      <div class="card-title">Proyección de costo — FORCAS <span class="badge badge-blue">FP02 §17</span></div>
+      <div class="chart-box tall">
+        <canvas id="chartForcas"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Estado ISO checklist por proyecto</div>
+      <div id="isoProyecto">
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>ZAP — Propuesta Comercial</strong>Disponible y firmada (SOW)</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>ZAP — GitLab / Drive</strong>Repositorio configurado</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>ZAP — Gestión de Riesgos</strong>Matriz vigente</div></div>
+        <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>ZAP — Encuesta satisfacción</strong>No registrada aún</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>DIF — Propuesta + KickOff</strong>Disponible</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>DIF — Arquitectura validada</strong>Doc V1.3 disponible</div></div>
+        <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>DIF — Horas reales Clockify</strong>Desvío pendiente de cálculo</div></div>
+        <div class="iso-item"><div class="iso-check miss">✗</div><div class="iso-text"><strong>Evolutivo DIF — Documentación</strong>Pendiente de inicio</div></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════
+     TAB: EQUIPO
+══════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-equipo">
+
+  <div class="section-hdr">
+    <h2>Productividad del equipo</h2>
+    <select id="mesEquipo" class="db-bar" style="padding:5px 10px;margin:0;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;" onchange="renderEquipo()">
+      <option value="jun">Junio 2026</option>
+      <option value="may">Mayo 2026</option>
+      <option value="abr">Abril 2026</option>
+      <option value="mar">Marzo 2026</option>
+    </select>
+  </div>
+
+  <div class="table-wrap card" style="padding:0">
+    <table>
+      <thead>
+        <tr>
+          <th>Colaborador</th>
+          <th>Objetivo hs</th>
+          <th>Horas productivas</th>
+          <th>Productividad</th>
+          <th>Estado carga</th>
+          <th>Evaluación</th>
+          <th>Promedio semanal</th>
+        </tr>
+      </thead>
+      <tbody id="tablaEquipoBody">
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="card">
+      <div class="card-title">Productividad individual — Junio 2026</div>
+      <div class="chart-box tall">
+        <canvas id="chartEquipoProd"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Evaluación individual <span class="badge badge-gray">§16 FP02</span></div>
+      <div id="evalContainer">
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Daniel Martinez</strong>Cumple Compromisos · Registra · Avisa · Participa</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Marco Saggiorato</strong>Cumple Compromisos · Registra · Avisa · Participa</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Melisa Sajoza</strong>Cumple Compromisos · Registra · Avisa · Participa</div></div>
+        <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Anabel Alarcon</strong>Riesgo — No avisa desvíos. Foco solo en cliente propio.</div></div>
+        <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Naira Garibay</strong>Riesgo — No avisa desvíos. Foco solo en cliente propio.</div></div>
+        <div class="iso-item"><div class="iso-check miss">✗</div><div class="iso-text"><strong>Mario Reyna</strong>No cumple — No participa dailys. Hay que estarle encima.</div></div>
+        <div class="iso-item"><div class="iso-check miss">✗</div><div class="iso-text"><strong>Mariano Bozzoletti</strong>No cumple — No es proactivo, no consulta, no levanta la mano.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Horas por proyecto por colaborador (Clockify Jun) -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Horas por proyecto y colaborador — Junio 2026 (Clockify) <span class="badge badge-blue">Semana 1</span></div>
+    <div class="chart-box tall">
+      <canvas id="chartHrsProyCol"></canvas>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════
+     TAB: RENTABILIDAD
+══════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-rentabilidad">
+
+  <div class="section-hdr"><h2>Control de rentabilidad y costos</h2></div>
+
+  <div class="grid grid-4" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Presupuesto total</div>
+      <div class="kpi-value" style="font-size:22px">$168.6M</div>
+      <div class="kpi-sub">ARS · ZAP + DIF + Evolutivo</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Costo real acumulado</div>
+      <div class="kpi-value" style="font-size:22px">$36.8M</div>
+      <div class="kpi-sub">ARS · ZAP + DIF (activos)</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Margen prom. proyectado</div>
+      <div class="kpi-value" style="color:var(--green)">54%</div>
+      <div class="kpi-sub">Meta: ≥ 35% (FP02 §17)</div>
+      <div class="kpi-trend up">▲ Por encima del umbral</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Horas restantes</div>
+      <div class="kpi-value">1.532</div>
+      <div class="kpi-sub">de 2.823 presupuestadas</div>
+      <div class="kpi-trend warn">54.2% ejecutado</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-title">FORCAS — Costo final proyectado por proyecto</div>
+      <div class="chart-box tall">
+        <canvas id="chartRentProy"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Costo por hora (ARS) por perfil — Abril 2026</div>
+      <div class="chart-box tall">
+        <canvas id="chartCostoHora"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Detalle de costos por proyecto</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Cliente</th>
+            <th>Presupuesto $</th>
+            <th>Costo real $</th>
+            <th>Proy. costo final</th>
+            <th>Margen FORCAS</th>
+            <th>Hs Est.</th>
+            <th>Hs Reales</th>
+            <th>Cto. prom/h</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Agente Proactivo</strong></td>
+            <td>ZAP Arquitectos</td>
+            <td>$9.1M</td>
+            <td>$4.2M</td>
+            <td>$5.3M</td>
+            <td><span class="badge badge-green">41.7%</span></td>
+            <td>155</td>
+            <td>122.25</td>
+            <td>$34.386</td>
+            <td><span class="sem green"><span class="sem-dot"></span>OK</span></td>
+          </tr>
+          <tr>
+            <td><strong>Agente Det. Oficio</strong></td>
+            <td>DIF</td>
+            <td>$159.4M</td>
+            <td>$32.6M</td>
+            <td>$54.7M</td>
+            <td><span class="badge badge-green">65.7%</span></td>
+            <td>1.960</td>
+            <td>1.169.2</td>
+            <td>$27.892</td>
+            <td><span class="sem yellow"><span class="sem-dot"></span>Verificar</span></td>
+          </tr>
+          <tr>
+            <td><strong>Evolutivo DIF</strong></td>
+            <td>DIF</td>
+            <td>$60.5M</td>
+            <td>$0</td>
+            <td>—</td>
+            <td><span class="badge badge-gray">Sin datos</span></td>
+            <td>708</td>
+            <td>0</td>
+            <td>—</td>
+            <td><span class="sem gray" style="color:var(--muted)"><span class="sem-dot" style="background:var(--muted)"></span>Sin inicio</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Costo por perfil comparativo -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Evolución costo hora por perfil — Feb · Mar · Abr 2026 <span class="badge badge-gray">ARS</span></div>
+    <div class="chart-box tall">
+      <canvas id="chartCostoEvo"></canvas>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════
+     TAB: ISO
+══════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-iso">
+
+  <div class="section-hdr"><h2>Cumplimiento ISO 9001 + 42001</h2></div>
+
+  <div class="grid grid-4" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Indicadores verdes</div>
+      <div class="kpi-value" style="color:var(--green)">7</div>
+      <div class="kpi-sub">de 12 indicadores FP02</div>
+    </div>
+    <div class="card">
+      <div class="card-title">En seguimiento</div>
+      <div class="kpi-value" style="color:var(--yellow)">4</div>
+      <div class="kpi-sub">requieren acción</div>
+    </div>
+    <div class="card">
+      <div class="card-title">No conformidades</div>
+      <div class="kpi-value" style="color:var(--red)">1</div>
+      <div class="kpi-sub">pendiente de cierre</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Próxima revisión</div>
+      <div class="kpi-value" style="font-size:18px">Q3 2026</div>
+      <div class="kpi-sub">Encuestas satisfacción</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-title">Indicadores FP02 §17 — Estado actual</div>
+      <div class="chart-box">
+        <canvas id="chartIsoStatus"></canvas>
+      </div>
+      <div style="margin-top:16px">
+        <div class="mini-stat">
+          <span class="mini-stat-label">% Cumplimiento Sprint</span>
+          <span><span class="badge badge-green">100%</span> Meta ≥90%</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label">Bugs / Retrabajo</span>
+          <span><span class="badge badge-green">&lt;30%</span> Meta &lt;30%</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label">Margen de rentabilidad</span>
+          <span><span class="badge badge-green">54%</span> Meta ≥35%</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label">Carga horas Clockify</span>
+          <span><span class="badge badge-yellow">~93%</span> Meta ≥95%</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label">Productividad vs estimado</span>
+          <span><span class="badge badge-green">≤20% desvío</span> OK</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label">Evidencia testing en Odoo</span>
+          <span><span class="badge badge-yellow">Parcial</span> Verificar</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label">Riesgos actualizados</span>
+          <span><span class="badge badge-green">2/2 proyectos</span> ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Checklist proceso FP02 Rev.09</div>
+      <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Doc. Especificación Inicial</strong>ZAP y DIF cuentan con especificación aprobada</div></div>
+      <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Propuesta comercial con estimación (3/8/13 pts)</strong>Planillas de estimación disponibles en Drive</div></div>
+      <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>KickOff realizado y documentado</strong>ZAP y DIF con kickoff registrado</div></div>
+      <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Configuración GitLab y Clockify</strong>Proyectos activos en ambas herramientas</div></div>
+      <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Matriz de riesgos inicial</strong>Disponible para todos los proyectos activos</div></div>
+      <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Seguimiento semanal</strong>Dashboard y planilla activos (FP02 §8.5.1)</div></div>
+      <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Encuesta satisfacción cliente</strong>No enviada aún. Requerida al cierre / 6 meses.</div></div>
+      <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Carga hs Clockify ≥95%</strong>Dos colaboradores con carga incompleta puntual</div></div>
+      <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Evidencia testing en Odoo</strong>No todas las tareas Done tienen evidencia vinculada</div></div>
+      <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Post Mortem — incidentes High</strong>Sin incidentes críticos activos. Plantilla disponible.</div></div>
+      <div class="iso-item"><div class="iso-check miss">✗</div><div class="iso-text"><strong>NC — Colaboradores sin compromiso</strong>Registrar en R01 PG04 para Mario R. y Mariano B.</div></div>
+      <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Documento FP02 Rev.09 vigente</strong>Aprobado por Dirección 05/05/2026</div></div>
+    </div>
+  </div>
+
+  <!-- ISO 42001 -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">ISO 42001 — Gestión de sistemas de IA <span class="badge badge-teal">AI Management</span></div>
+    <div class="grid grid-3" style="gap:12px; margin-top: 4px;">
+      <div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Identificación de proyectos IA</strong>Agente Proactivo ZAP, DIF-DO, Evolutivo DIF identificados como proyectos IA</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>QAthreex como soporte IA documentado</strong>Mencionado en FP02 §11 como herramienta de apoyo bajo supervisión humana</div></div>
+        <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Evaluación de riesgo IA</strong>No hay matriz de riesgo específica de impacto IA para cada proyecto</div></div>
+      </div>
+      <div>
+        <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Transparencia y explicabilidad</strong>Criterios de aceptación BDD deben incluir escenarios de comportamiento IA</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Supervisión humana en ciclo</strong>QA independiente requerido para validar funcionalidades IA (FP02 §11)</div></div>
+        <div class="iso-item"><div class="iso-check miss">✗</div><div class="iso-text"><strong>Política de uso de IA</strong>No hay política formal documentada de uso de herramientas IA en proyectos</div></div>
+      </div>
+      <div>
+        <div class="iso-item"><div class="iso-check miss">✗</div><div class="iso-text"><strong>Registro de incidentes IA</strong>Sin registro diferenciado para incidentes relacionados a componentes IA</div></div>
+        <div class="iso-item"><div class="iso-check warn">!</div><div class="iso-text"><strong>Control de sesgos / datos</strong>Pendiente definir política de calidad de datos para modelos IA (RECA ISIB, etc.)</div></div>
+        <div class="iso-item"><div class="iso-check ok">✓</div><div class="iso-text"><strong>Mejora continua IA</strong>Retrospectivas incluyen evaluación de herramientas IA utilizadas</div></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════
+     TAB: CONEXIÓN BD
+══════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-config">
+
+  <div class="section-hdr"><h2>Configuración de conexión PostgreSQL</h2></div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-title">Parámetros de conexión</div>
+      <div class="db-bar" style="flex-direction:column; align-items:flex-start; gap:12px; background:none; border:none; padding:0">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; width:100%">
+          <div style="flex:1; min-width:180px">
+            <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Host</label>
+            <input type="text" id="cfg-host" value="localhost" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+          </div>
+          <div style="width:90px">
+            <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Puerto</label>
+            <input type="number" id="cfg-port" value="5432" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; width:100%">
+          <div style="flex:1">
+            <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Base de datos</label>
+            <input type="text" id="cfg-db" value="ithreex_ops" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; width:100%">
+          <div style="flex:1">
+            <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Usuario</label>
+            <input type="text" id="cfg-user" value="dm_user" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+          </div>
+          <div style="flex:1">
+            <label style="display:block; color:var(--muted); font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px">Contraseña</label>
+            <input type="password" id="cfg-pass" placeholder="••••••••" style="width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none;">
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:8px">
+          <button class="btn" onclick="testConnection()">🔌 Probar conexión</button>
+          <button class="btn secondary" onclick="saveConfig()">💾 Guardar configuración</button>
+        </div>
+        <div id="connStatus" style="font-size:12px; color:var(--muted); margin-top:4px">Estado: sin probar</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Esquema recomendado PostgreSQL</div>
+      <pre style="background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:14px; font-size:11px; color:var(--accent2); overflow-x:auto; line-height:1.7">-- Proyectos
+CREATE TABLE proyectos (
+  id          SERIAL PRIMARY KEY,
+  nombre      TEXT NOT NULL,
+  cliente     TEXT,
+  estado      TEXT,  -- 'En Curso','Finalizado','Planificado'
+  inicio      DATE,
+  fin_plan    DATE,
+  hs_estimadas NUMERIC,
+  presupuesto  NUMERIC,
+  clockify_id  TEXT,
+  odoo_id      TEXT,
+  squad        TEXT
+);
+
+-- Horas por colaborador/semana
+CREATE TABLE horas_semana (
+  id          SERIAL PRIMARY KEY,
+  proyecto_id INT REFERENCES proyectos(id),
+  colaborador TEXT,
+  semana      INT,
+  mes         DATE,
+  hs_objetivo NUMERIC,
+  hs_real     NUMERIC,
+  productividad NUMERIC,
+  estado_carga TEXT
+);
+
+-- Clockify raw
+CREATE TABLE clockify_entries (
+  id          SERIAL PRIMARY KEY,
+  proyecto    TEXT,
+  cliente     TEXT,
+  descripcion TEXT,
+  usuario     TEXT,
+  facturable  BOOLEAN,
+  fecha       DATE,
+  duracion_h  NUMERIC,
+  mes         DATE
+);
+
+-- Costos por perfil/mes
+CREATE TABLE costos_perfil (
+  id          SERIAL PRIMARY KEY,
+  mes         DATE,
+  perfil      TEXT,
+  costo_hora  NUMERIC,
+  costo_opex  NUMERIC,
+  total       NUMERIC,
+  costo_venta NUMERIC
+);
+
+-- Encuestas satisfacción
+CREATE TABLE satisfaccion (
+  id          SERIAL PRIMARY KEY,
+  proyecto_id INT REFERENCES proyectos(id),
+  fecha       DATE,
+  score       NUMERIC,
+  tipo        TEXT,  -- 'interna','clutch'
+  comentarios TEXT
+);</pre>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Endpoints de API sugeridos (FastAPI backend existente)</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Método</th><th>Endpoint</th><th>Descripción</th><th>Tablas</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/proyectos</code></td><td>Lista todos los proyectos con KPIs</td><td>proyectos + horas_semana</td></tr>
+          <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/productividad?mes=2026-06</code></td><td>Productividad del equipo por mes</td><td>horas_semana</td></tr>
+          <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/rentabilidad</code></td><td>FORCAS, margen y costos</td><td>proyectos + costos_perfil</td></tr>
+          <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/clockify?mes=2026-06</code></td><td>Entradas Clockify del mes</td><td>clockify_entries</td></tr>
+          <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/iso/status</code></td><td>Estado de indicadores ISO</td><td>proyectos + horas_semana</td></tr>
+          <tr><td><span class="badge badge-blue">POST</span></td><td><code>/api/satisfaccion</code></td><td>Registrar encuesta de satisfacción</td><td>satisfaccion</td></tr>
+          <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/costos/perfiles?mes=2026-04</code></td><td>Costo hora por perfil</td><td>costos_perfil</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="alert-item warn" style="margin-top:14px">
+      <div class="alert-icon">💡</div>
+      <div class="alert-text">Este dashboard detecta automáticamente el backend en <code>http://localhost:8000</code>. Si el servidor FastAPI está disponible, los datos se actualizan en tiempo real. Si no hay conexión, se muestran los datos cargados desde los archivos Excel.</div>
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+<footer class="footer">
+  IThreex Global · Dashboard de Operaciones · FP02 Rev.09 · ISO 9001 · ISO 42001
+  &nbsp;|&nbsp; Generado: <span id="ts"></span>
+</footer>
+
+<script>
+/* ══════════════════════════════════════════
+   STATE & CONFIG
+══════════════════════════════════════════ */
+const DB = {
+  host: localStorage.getItem('pg_host') || 'localhost',
+  port: localStorage.getItem('pg_port') || '5432',
+  db:   localStorage.getItem('pg_db')   || 'ithreex_ops',
+  user: localStorage.getItem('pg_user') || 'dm_user',
+  pass: localStorage.getItem('pg_pass') || '',
+  apiBase: localStorage.getItem('pg_api') || 'http://localhost:8000'
+};
+
+/* ══════════════════════════════════════════
+   DATOS ESTÁTICOS (reales de los Excel)
+══════════════════════════════════════════ */
+const DATA = {
+  meses: ['Ene 26','Feb 26','Mar 26','Abr 26','May 26'],
+  prodMensual: [95.1, 94.1, 96.4, 93.5, 98.6],
+  hsTotal:      [2068, 2356, 2440, 2600, 2200],
+  hsProd:       [1966, 2217, 2353, 2430, 2170],
+  factPct: { fact: 82.8, opex: 17.2 },  // May 2026 approx
+
+  zapEquipo: {
+    labels: ['Mario Reyna','Romina Ciccarello','Melisa Sajoza'],
+    data:   [63.95, 54.3, 1.0]
+  },
+  difEquipo: {
+    labels: ['Romina Ciccarello','Daniel Martinez','Melisa Sajoza','Gaspar Balmaceda','Anabel Alarcon','Facundo Godoy'],
+    data:   [90.9, 68.75, 45.75, 0, 0, 0]
+  },
+  avanceHs: {
+    labels: ['ZAP — Agente Proactivo','DIF — Det. Oficio','Evolutivo DIF'],
+    estimadas: [155, 1960, 708],
+    reales:    [122.25, 1169.2, 0],
+    restantes: [32.75, 790.8, 708]
+  },
+  forcas: {
+    labels: ['ZAP Arquitectos','DIF — Det. Oficio'],
+    presupuesto: [9136680, 159392133],
+    costoReal:   [4203651, 32611137],
+    proyFinal:   [5329783, 54668002]
+  },
+  costoHoraAbr: {
+    labels: ['ML','Desarrollador','QA','Big Data','DevOps','Delivery Mgr','Arquitecto'],
+    costo:  [20503, 12500, 18684, 12364, 19896, 32931, 32931],
+    venta:  [51257, 31250, 46709, 30910, 49740, 82328, 82328]
+  },
+  costoEvo: {
+    labels: ['ML','Desarrollador','QA','DevOps','Delivery Mgr'],
+    feb: [20462, 21875, 20371, 25000, 25975],
+    mar: [20462, 21875, 20372, 25000, 25975],
+    abr: [20503, 12500, 18684, 19896, 32931]
+  },
+  equipoJun: [
+    {nombre:'Anabel Alarcon',  obj:40, prod:38.5, pct:0.9625, carga:'🟢 OK', prom:'🟡 Atencion', eval:'🟡 Riesgo'},
+    {nombre:'Benjamin Barrios',obj:40, prod:40,   pct:1,      carga:'🟢 OK', prom:'🟢 ok',       eval:'🟢 Cumple'},
+    {nombre:'Constanza Oyola', obj:40, prod:40,   pct:1,      carga:'🟢 OK', prom:'🟢 ok',       eval:'🟢 Cumple'},
+    {nombre:'Daiana Viotti',   obj:40, prod:40,   pct:1,      carga:'🟢 OK', prom:'🟢 ok',       eval:'🟢 Cumple'},
+    {nombre:'Daniel Martinez', obj:40, prod:39.5, pct:0.9875, carga:'🟢 OK', prom:'🟡 Atencion', eval:'🟢 Cumple'},
+    {nombre:'Facundo Godoy',   obj:40, prod:40,   pct:1,      carga:'🟢 OK', prom:'🟢 ok',       eval:'🟢 Cumple'},
+    {nombre:'Marco Saggiorato',obj:20, prod:20,   pct:1,      carga:'🟢 OK', prom:'🟢 ok',       eval:'🟢 Cumple'},
+  ],
+  isoStatus: { verde:7, amarillo:4, rojo:1 }
+};
+
+/* ══════════════════════════════════════════
+   TABS
+══════════════════════════════════════════ */
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const ids = ['overview','proyectos','equipo','rentabilidad','iso','config'];
+    b.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+}
+
+/* ══════════════════════════════════════════
+   CONNECTION TEST (via FastAPI backend)
+══════════════════════════════════════════ */
+async function testConnection() {
+  const dot   = document.getElementById('connDot');
+  const label = document.getElementById('connLabel');
+  const status= document.getElementById('connStatus');
+  dot.className = 'conn-dot';
+  label.textContent = 'Conectando...';
+  status.textContent = 'Estado: probando...';
+  try {
+    const base = document.getElementById('cfg-host') ? 
+      `http://${document.getElementById('cfg-host').value}:8000` : DB.apiBase;
+    const r = await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      dot.className = 'conn-dot connected';
+      label.textContent = 'Conectado';
+      status.textContent = 'Estado: conexión exitosa con la API ✓';
+      loadFromAPI(base);
+    } else {
+      throw new Error('HTTP ' + r.status);
+    }
+  } catch(e) {
+    dot.className = 'conn-dot error';
+    label.textContent = 'Sin conexión API';
+    status.textContent = `Estado: ${e.message}. Usando datos estáticos de los Excel.`;
+  }
+}
+
+async function loadFromAPI(base) {
+  try {
+    const [prod, proyectos] = await Promise.all([
+      fetch(`${base}/api/productividad`).then(r=>r.json()).catch(()=>null),
+      fetch(`${base}/api/proyectos`).then(r=>r.json()).catch(()=>null),
+    ]);
+    if (prod) updateProdChart(prod);
+    if (proyectos) updateProyTable(proyectos);
+  } catch(e) { /* silent */ }
+}
+
+function saveConfig() {
+  const h = document.getElementById('cfg-host').value;
+  const p = document.getElementById('cfg-port').value;
+  const d = document.getElementById('cfg-db').value;
+  const u = document.getElementById('cfg-user').value;
+  const pw= document.getElementById('cfg-pass').value;
+  localStorage.setItem('pg_host', h);
+  localStorage.setItem('pg_port', p);
+  localStorage.setItem('pg_db', d);
+  localStorage.setItem('pg_user', u);
+  if (pw) localStorage.setItem('pg_pass', pw);
+  localStorage.setItem('pg_api', `http://${h}:8000`);
+  document.getElementById('connStatus').textContent = 'Configuración guardada ✓';
+}
+
+function showDbConfig() { switchTab('config'); }
+function refreshAll()   { testConnection(); renderEquipo(); }
+
+/* ══════════════════════════════════════════
+   RENDER EQUIPO TABLE
+══════════════════════════════════════════ */
+function renderEquipo() {
+  const tbody = document.getElementById('tablaEquipoBody');
+  tbody.innerHTML = '';
+  DATA.equipoJun.forEach(r => {
+    const pct = (r.pct * 100).toFixed(1);
+    const color = r.pct >= .95 ? 'var(--green)' : r.pct >= .85 ? 'var(--yellow)' : 'var(--red)';
+    const evalBadge = r.eval.includes('Riesgo') ? 'badge-yellow' :
+                      r.eval.includes('Cumple') ? 'badge-green'  : 'badge-red';
+    tbody.innerHTML += `<tr>
+      <td><strong>${r.nombre}</strong></td>
+      <td>${r.obj} hs</td>
+      <td>${r.prod} hs</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="progress-wrap" style="width:80px">
+            <div class="progress-bar" style="width:${Math.min(pct,100)}%;background:${color}"></div>
+          </div>
+          <span style="font-size:12px;font-weight:600;color:${color}">${pct}%</span>
+        </div>
+      </td>
+      <td>${r.carga}</td>
+      <td><span class="badge ${evalBadge}">${r.eval.replace(/[🟢🟡🔴]/g,'').trim()}</span></td>
+      <td style="color:var(--muted);font-size:12px">${r.prom}</td>
+    </tr>`;
+  });
+}
+
+/* ══════════════════════════════════════════
+   CHARTS
+══════════════════════════════════════════ */
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color: '#8b949e', font:{size:11} }, grid: { color: '#2a3345' } },
+    y: { ticks: { color: '#8b949e', font:{size:11} }, grid: { color: '#2a3345' } }
+  }
+};
+
+function mkChart(id, type, data, options={}) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const existing = Chart.getChart(el);
+  if (existing) existing.destroy();
+  return new Chart(el, { type, data, options: {...CHART_DEFAULTS, ...options} });
+}
+
+function initCharts() {
+  // Productividad mensual
+  mkChart('chartProd', 'line', {
+    labels: DATA.meses,
+    datasets: [{
+      label: 'Productividad %',
+      data: DATA.prodMensual,
+      borderColor: '#1a7df8',
+      backgroundColor: 'rgba(26,125,248,.1)',
+      tension: .4, fill: true, pointBackgroundColor:'#1a7df8',
+    },{
+      label: 'Meta 90%',
+      data: Array(5).fill(90),
+      borderColor: '#f85149', borderDash: [4,4], borderWidth:1,
+      pointRadius:0, fill:false
+    }]
+  }, { plugins:{ legend:{ labels:{color:'#8b949e',font:{size:11}} } } });
+
+  // Horas totales vs productivas
+  mkChart('chartHrsTotal', 'bar', {
+    labels: DATA.meses,
+    datasets: [
+      { label:'Horas totales',    data: DATA.hsTotal, backgroundColor:'rgba(26,125,248,.6)' },
+      { label:'Horas productivas', data: DATA.hsProd,  backgroundColor:'rgba(15,196,167,.7)' }
+    ]
+  });
+
+  // Facturable vs OPEX (donut)
+  mkChart('chartFactOp', 'doughnut', {
+    labels: ['Facturable','OPEX / No facturable'],
+    datasets: [{ data:[DATA.factPct.fact, DATA.factPct.opex],
+      backgroundColor:['rgba(15,196,167,.8)','rgba(248,81,73,.6)'],
+      borderColor:['#0fc4a7','#f85149'], borderWidth:2
+    }]
+  }, { scales:{}, plugins:{ legend:{ position:'bottom', labels:{color:'#8b949e',font:{size:11}} } } });
+
+  // ZAP equipo
+  mkChart('chartZapHrs', 'bar', {
+    labels: DATA.zapEquipo.labels,
+    datasets: [{ label:'Horas reales', data: DATA.zapEquipo.data,
+      backgroundColor:['rgba(26,125,248,.7)','rgba(15,196,167,.7)','rgba(240,136,62,.7)']
+    }]
+  },{indexAxis:'y'});
+
+  // DIF equipo
+  mkChart('chartDifHrs', 'bar', {
+    labels: DATA.difEquipo.labels,
+    datasets: [{ label:'Horas reales', data: DATA.difEquipo.data,
+      backgroundColor:'rgba(26,125,248,.6)'
+    }]
+  },{indexAxis:'y'});
+
+  // Avance horas
+  mkChart('chartAvance', 'bar', {
+    labels: DATA.avanceHs.labels,
+    datasets: [
+      { label:'Reales', data: DATA.avanceHs.reales,    backgroundColor:'rgba(15,196,167,.8)' },
+      { label:'Restantes', data: DATA.avanceHs.restantes, backgroundColor:'rgba(26,125,248,.4)' }
+    ]
+  },{plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}}});
+
+  // FORCAS proyectos
+  mkChart('chartForcas', 'bar', {
+    labels: DATA.forcas.labels,
+    datasets: [
+      { label:'Presupuesto', data: DATA.forcas.presupuesto, backgroundColor:'rgba(26,125,248,.4)' },
+      { label:'Costo real',  data: DATA.forcas.costoReal,   backgroundColor:'rgba(15,196,167,.7)' },
+      { label:'Proy. final', data: DATA.forcas.proyFinal,   backgroundColor:'rgba(240,136,62,.7)' }
+    ]
+  },{plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}}});
+
+  // Rentabilidad por proyecto
+  mkChart('chartRentProy', 'bar', {
+    labels: DATA.forcas.labels,
+    datasets: [
+      { label:'Presupuesto', data: DATA.forcas.presupuesto, backgroundColor:'rgba(26,125,248,.3)' },
+      { label:'Costo real',  data: DATA.forcas.costoReal,   backgroundColor:'rgba(15,196,167,.6)' },
+      { label:'Proy. costo final', data: DATA.forcas.proyFinal, backgroundColor:'rgba(240,136,62,.6)' }
+    ]
+  },{plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}}});
+
+  // Costo hora por perfil
+  mkChart('chartCostoHora', 'bar', {
+    labels: DATA.costoHoraAbr.labels,
+    datasets: [
+      { label:'Costo real/h (ARS)', data: DATA.costoHoraAbr.costo, backgroundColor:'rgba(26,125,248,.7)' },
+      { label:'Costo de venta/h',   data: DATA.costoHoraAbr.venta,  backgroundColor:'rgba(15,196,167,.6)' }
+    ]
+  });
+
+  // Evolución costo perfil
+  mkChart('chartCostoEvo', 'line', {
+    labels: DATA.costoEvo.labels,
+    datasets: [
+      { label:'Feb 2026', data: DATA.costoEvo.feb, borderColor:'rgba(26,125,248,.8)',  tension:.4, fill:false },
+      { label:'Mar 2026', data: DATA.costoEvo.mar, borderColor:'rgba(15,196,167,.8)', tension:.4, fill:false },
+      { label:'Abr 2026', data: DATA.costoEvo.abr, borderColor:'rgba(240,136,62,.9)', tension:.4, fill:false }
+    ]
+  });
+
+  // Productividad equipo (Jun)
+  mkChart('chartEquipoProd', 'bar', {
+    labels: DATA.equipoJun.map(r => r.nombre.split(' ')[0]),
+    datasets:[{
+      label:'Productividad %',
+      data: DATA.equipoJun.map(r => +(r.pct*100).toFixed(1)),
+      backgroundColor: DATA.equipoJun.map(r =>
+        r.pct >= .95 ? 'rgba(63,185,80,.7)' : r.pct >= .85 ? 'rgba(210,153,34,.7)' : 'rgba(248,81,73,.7)'
+      )
+    }]
+  },{
+    plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}},
+    scales:{
+      y:{ min:85, max:105, ticks:{color:'#8b949e',font:{size:11}}, grid:{color:'#2a3345'} },
+      x:{ ticks:{color:'#8b949e',font:{size:11}}, grid:{color:'#2a3345'} }
+    }
+  });
+
+  // Horas proyecto/colaborador Jun
+  mkChart('chartHrsProyCol', 'bar', {
+    labels: ['Daiana Viotti','Msajoza','rciccarello','Mario Reyna','fgodoy','Daniel Martinez','Anabel Alarcon'],
+    datasets: [
+      { label:'ZAP', data:[0,0,1,0,0,0,0], backgroundColor:'rgba(26,125,248,.8)' },
+      { label:'DIF-DO', data:[0,0,2,0,0,2,0], backgroundColor:'rgba(15,196,167,.7)' },
+      { label:'SUAT/Sirona', data:[0,0,0,0,0,0,2], backgroundColor:'rgba(240,136,62,.7)' },
+      { label:'Gestión', data:[0.25,0,0,0,0,0,0], backgroundColor:'rgba(139,148,158,.5)' },
+    ]
+  });
+
+  // ISO donut
+  mkChart('chartIsoStatus', 'doughnut', {
+    labels:['Verde ✓','Amarillo ⚠','Rojo ✗'],
+    datasets:[{
+      data:[DATA.isoStatus.verde, DATA.isoStatus.amarillo, DATA.isoStatus.rojo],
+      backgroundColor:['rgba(63,185,80,.75)','rgba(210,153,34,.75)','rgba(248,81,73,.75)'],
+      borderColor:['#3fb950','#d29922','#f85149'], borderWidth:2
+    }]
+  },{scales:{}, plugins:{legend:{position:'bottom',labels:{color:'#8b949e',font:{size:11}}}}});
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+document.getElementById('ts').textContent = new Date().toLocaleString('es-AR');
+renderEquipo();
+initCharts();
+testConnection();
+</script>
+</body>
+</html>
